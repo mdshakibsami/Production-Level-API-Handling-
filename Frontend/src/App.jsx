@@ -8,22 +8,37 @@ const useCustomReactQuery = (url) => {
   const [error, setError] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  // handle rase condition
   useEffect(() => {
+    const controller = new AbortController(); // rase step - 1
     // Effi
     (async () => {
       try {
         setError(false);
         setLoading(true);
-        const response = await axios.get(url);
+        const response = await axios.get(url, {
+          signal: controller.signal, // rase step - 2
+        });
         setProducts(response.data);
         console.log(response.data);
         setLoading(false);
       } catch (error) {
+        // rase step - 3
+        if (axios.isCancel(error)) {
+          console.log(error.message);
+          return;
+        }
         setError(true);
         setLoading(false);
         console.log(error);
       }
     })();
+
+    // cleanUp
+    // rase step - 4
+    return () => {
+      controller.abort();
+    };
   }, [url]);
 
   return [products, error, loading];
@@ -31,9 +46,21 @@ const useCustomReactQuery = (url) => {
 
 function App() {
   const [search, setSearch] = useState("");
+  const [debounceSearch, setDebounceSearch] = useState("");
+
+  // Debounce Effect (this call the function after the set time)
+  useEffect(() => {
+    const handleDebounce = setTimeout(() => {
+      setDebounceSearch(search);
+    }, 1000);
+
+    return () => {
+      clearTimeout(handleDebounce);
+    };
+  }, [search]);
 
   const [products, error, loading] = useCustomReactQuery(
-    `/api/products?search=${search}`
+    `/api/products?search=${debounceSearch}`
   );
 
   if (error) return <p>Something went wrong!</p>;
@@ -46,6 +73,7 @@ function App() {
       <h1>Handle API like a professional</h1>
       <h2 className="text-3xl my-5">Number of Products : {products.length}</h2>
       <input
+        value={search}
         onChange={(e) => setSearch(e.target.value)}
         className="my-2 bg-white text-black border-3 rounded-lg w-1/2 py-1 px-2 border-red-500"
         placeholder="search food item name"
