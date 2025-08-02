@@ -109,7 +109,7 @@ app.get("/api/products", (req, res) => {
 
   setTimeout(() => {
     res.send(foodItems);
-  }, 4000);
+  }, 2000);
 });
 
 app.listen(port, () => {
